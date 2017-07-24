@@ -11,6 +11,8 @@
 #include <mruby.h>
 #include <mruby/data.h>
 #include <mruby/error.h>
+#include <mruby/hash.h>
+#include <mruby/value.h>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -22,6 +24,7 @@
 #define DONE mrb_gc_arena_restore(mrb, 0);
 
 #define mrb_mknod_symbol_p(type, expected) (type == mrb_intern_lit(mrb, expected))
+#define mrb_mknod_make_sym(name) mrb_symbol_value(mrb_intern_lit(mrb, name))
 
 static mrb_value mrb_file_mknod(mrb_state *mrb, mrb_value self)
 {
@@ -51,6 +54,38 @@ static mrb_value mrb_file_mknod(mrb_state *mrb, mrb_value self)
   return mrb_true_value();
 }
 
+static mrb_value mrb_file_get_filetype(mrb_state *mrb, mode_t mode)
+{
+  if (S_ISCHR(mode)) {
+    return mrb_mknod_make_sym("char");
+  } else if (S_ISBLK(mode)) {
+    return mrb_mknod_make_sym("block");
+  } else if (S_ISREG(mode) && S_ISDIR(mode)) {
+    return mrb_mknod_make_sym("regular");
+  } else {
+    return mrb_mknod_make_sym("unknown");
+  }
+}
+
+static mrb_value mrb_file_majorminor(mrb_state *mrb, mrb_value self)
+{
+  char *path;
+  struct stat s;
+  mrb_value ha;
+  mrb_get_args(mrb, "z", &path);
+
+  if (stat(path, &s) < 0) {
+    mrb_sys_fail(mrb, "stat");
+  }
+
+  ha = mrb_hash_new_capa(mrb, 3);
+  mrb_hash_set(mrb, ha, mrb_mknod_make_sym("major"), mrb_fixnum_value(major(s.st_rdev)));
+  mrb_hash_set(mrb, ha, mrb_mknod_make_sym("minor"), mrb_fixnum_value(minor(s.st_rdev)));
+  mrb_hash_set(mrb, ha, mrb_mknod_make_sym("filetype"), mrb_file_get_filetype(mrb, s.st_mode));
+
+  return ha;
+}
+
 void mrb_mruby_file_mknod_gem_init(mrb_state *mrb)
 {
   struct RClass *file;
@@ -62,6 +97,7 @@ void mrb_mruby_file_mknod_gem_init(mrb_state *mrb)
 
   mrb_define_class_method(mrb, file, "mknod", mrb_file_mknod, MRB_ARGS_ARG(4, 1));
   mrb_define_class_method(mrb, file, "makedev", mrb_file_mknod, MRB_ARGS_ARG(4, 1));
+  mrb_define_class_method(mrb, file, "majorminor", mrb_file_majorminor, MRB_ARGS_REQ(1));
 
   DONE;
 }
