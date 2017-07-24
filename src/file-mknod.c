@@ -86,14 +86,14 @@ static mrb_value mrb_file_majorminor(mrb_state *mrb, mrb_value self)
   return ha;
 }
 
+void mrb_mruby_io_gem_init(mrb_state *mrb);
+
 void mrb_mruby_file_mknod_gem_init(mrb_state *mrb)
 {
+  mrb_mruby_io_gem_init(mrb);
+
   struct RClass *file;
-  if (mrb_class_defined(mrb, "File")) {
-    file = mrb_class_get(mrb, "File");
-  } else {
-    file = mrb_define_class(mrb, "File", mrb->object_class);
-  }
+  file = mrb_class_get(mrb, "File");
 
   mrb_define_class_method(mrb, file, "mknod", mrb_file_mknod, MRB_ARGS_ARG(4, 1));
   mrb_define_class_method(mrb, file, "makedev", mrb_file_mknod, MRB_ARGS_ARG(4, 1));
