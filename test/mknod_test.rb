@@ -2,16 +2,9 @@
 ## File Test
 ##
 
-assert("File#hello") do
-  t = File.new "hello"
-  assert_equal("hello", t.hello)
-end
-
-assert("File#bye") do
-  t = File.new "hello"
-  assert_equal("hello bye", t.bye)
-end
-
-assert("File.hi") do
-  assert_equal("hi!!", File.hi)
+assert("File.majorminor") do
+  t = File.majorminor("/dev/null")
+  assert_equal(1, t[:major])
+  assert_equal(3, t[:minor])
+  assert_equal(:char, t[:filetype])
 end
